@@ -123,9 +123,10 @@ input#join-code{font:inherit;font-family:'Black Han Sans',sans-serif;font-size:1
 .tb.down{background:rgba(255,255,255,.35)}
 .t-sh{right:0;bottom:0;width:92px;height:92px;background:rgba(255,82,82,.55);font-size:1.15rem}
 .t-pa{right:100px;bottom:0;width:72px;height:72px;background:rgba(0,230,118,.45)}
-.t-lo{right:22px;bottom:102px;width:64px;height:64px;background:rgba(24,255,255,.35)}
-.t-sw{right:110px;bottom:84px;width:58px;height:58px}
-.t-sprint{right:170px;bottom:150px;width:58px;height:58px;font-size:.8rem}
+.t-lo{right:6px;bottom:100px;width:62px;height:62px;background:rgba(24,255,255,.35)}
+.t-th{right:76px;bottom:84px;width:58px;height:58px;background:rgba(255,213,79,.35)}
+.t-mod{right:150px;bottom:110px;width:54px;height:54px}
+.t-sprint{right:178px;bottom:20px;width:54px;height:54px;font-size:.8rem}
 @media (pointer:coarse){ #radar{width:170px;height:110px} #ctrl-info{bottom:auto;top:60px} #power{bottom:140px} }
 
 /* ---------- 패널 ---------- */
@@ -151,3 +152,21 @@ input#join-code{font:inherit;font-family:'Black Han Sans',sans-serif;font-size:1
   .vs{width:100%;text-align:center;font-size:1.5rem}
   .opt-label{min-width:auto;text-align:center;width:100%}
 }
+
+/* ---------- 키 설정 ---------- */
+.menu-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tip.top{margin:-6px 0 14px}
+.keys-list{display:flex;flex-direction:column;gap:6px;max-height:min(58vh,560px);overflow-y:auto;padding-right:4px}
+.kgroup{color:var(--neon);font-weight:900;font-size:.8rem;letter-spacing:.12em;margin:10px 0 2px}
+.krow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.krow .kname{font-weight:900}
+.krow .kdesc{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.45}
+.kslot{font:inherit;font-weight:900;min-width:96px;padding:8px 10px;border-radius:8px;border:1px solid #33456b;border-bottom-width:3px;
+  background:#1d2a44;color:var(--text);cursor:pointer}
+.kslot.empty{color:var(--muted);font-weight:700}
+.kslot.wait{background:var(--gold);color:#1a1300;border-color:var(--gold);animation:blink .8s infinite}
+.krow.missing{border-color:var(--red)}
+@keyframes blink{50%{opacity:.6}}
+.help-grid td:last-child{white-space:nowrap;text-align:right}
+.help-grid .hdesc{display:block;color:var(--muted);font-size:.78rem}
+@media (max-width:640px){ .krow{grid-template-columns:1fr 1fr} .krow>div:first-child{grid-column:1/-1} .kslot{min-width:0} }

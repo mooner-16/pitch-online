@@ -27,7 +27,10 @@
     <div class="menu-buttons">
       <button class="btn big primary" data-go="scr-ai"><b>AI 대전</b><small>컴퓨터와 한 판</small></button>
       <button class="btn big accent" data-go="scr-online"><b>온라인 대전</b><small>친구와 실시간 1:1</small></button>
-      <button class="btn" data-go="scr-help">조작법</button>
+      <div class="menu-row">
+        <button class="btn" data-go="scr-help">조작법</button>
+        <button class="btn" data-go="scr-keys">⚙ 키 설정</button>
+      </div>
     </div>
   </section>
 
@@ -88,36 +91,34 @@
 
   <section id="scr-help" class="screen">
     <h2>조작법</h2>
+    <p class="tip top">키 설정에서 바꾼 키가 그대로 표시돼요.</p>
     <div class="help-grid">
+      <div class="card"><h3>⌨️ 기본 키</h3><table id="help-basic"></table></div>
+      <div class="card"><h3>✨ 조합 기술</h3><table id="help-combo"></table></div>
+      <div class="card"><h3>🧤 골키퍼가 공을 잡았을 때</h3><table id="help-gk"></table></div>
       <div class="card">
-        <h3>⌨️ 키보드</h3>
+        <h3>🎮 게임패드 · 📱 모바일</h3>
         <table>
-          <tr><td>이동</td><td><kbd>W A S D</kbd> 또는 <kbd>방향키</kbd></td></tr>
-          <tr><td>질주</td><td><kbd>Shift</kbd></td></tr>
-          <tr><td>짧은 패스</td><td><kbd>J</kbd> 또는 <kbd>Z</kbd></td></tr>
-          <tr><td>슛 (누르고 있으면 파워)</td><td><kbd>K</kbd> 또는 <kbd>X</kbd></td></tr>
-          <tr><td>로빙 스루패스</td><td><kbd>L</kbd> 또는 <kbd>C</kbd></td></tr>
-          <tr><td>선수 전환</td><td><kbd>Q</kbd> 또는 <kbd>Space</kbd></td></tr>
-          <tr><td>수비: 태클</td><td><kbd>J</kbd> 또는 <kbd>K</kbd></td></tr>
-          <tr><td>일시정지</td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>패스 / 슛</td><td>A / B</td></tr>
+          <tr><td>로빙·크로스 / 스루 패스</td><td>X / Y</td></tr>
+          <tr><td>보조 Q / 보조 Z</td><td>LB / RB</td></tr>
+          <tr><td>등지기·조키 / 질주</td><td>LT / RT</td></tr>
+          <tr><td>치달 / 스탠딩 태클</td><td>L3 / R3</td></tr>
         </table>
-      </div>
-      <div class="card">
-        <h3>🎮 게임패드</h3>
-        <table>
-          <tr><td>이동</td><td>왼쪽 스틱</td></tr>
-          <tr><td>패스 / 태클</td><td>A (✕)</td></tr>
-          <tr><td>슛</td><td>B (○)</td></tr>
-          <tr><td>로빙 스루패스</td><td>Y (△)</td></tr>
-          <tr><td>선수 전환</td><td>LB (L1)</td></tr>
-          <tr><td>질주</td><td>RB / RT (R1 / R2)</td></tr>
-        </table>
-        <h3>📱 모바일</h3>
-        <p>왼쪽 화면을 드래그해서 이동, 오른쪽 버튼으로 패스·슛·전환을 해요.</p>
+        <p>모바일은 왼쪽 화면을 드래그해서 이동하고, 오른쪽 버튼을 써요. Q 버튼을 누른 채로 다른 버튼을 누르면 조합 기술이 나가요.</p>
       </div>
     </div>
-    <p class="tip">팁: 슛 버튼을 오래 누를수록 강해지지만 너무 세게 차면 골대를 넘어가요. 슛할 때 위/아래 방향키로 골문 구석을 노릴 수 있어요.</p>
     <div class="row-btns"><button class="btn" data-go="scr-main">뒤로</button></div>
+  </section>
+
+  <section id="scr-keys" class="screen">
+    <h2>키 설정</h2>
+    <p class="tip top">바꿀 칸을 누른 다음 원하는 키를 누르세요. <kbd>Backspace</kbd> 지우기 · <kbd>Esc</kbd> 취소<br>이미 쓰는 키를 넣으면 원래 자리는 비워져요. 한 기능에 키를 2개까지 넣을 수 있어요.</p>
+    <div id="keys-list" class="keys-list"></div>
+    <div class="row-btns">
+      <button class="btn" id="btn-keys-reset">기본값으로 되돌리기</button>
+      <button class="btn primary" data-go="scr-main">완료</button>
+    </div>
   </section>
 </div>
 
@@ -134,18 +135,19 @@
   <div id="ctrl-info"><span id="ctrl-num">9</span><span id="ctrl-name">선수</span></div>
   <div id="power"><div class="pw-label">슛 파워</div><div class="pw-bar"><i></i></div></div>
   <canvas id="radar" width="220" height="142"></canvas>
-  <button id="btn-pause" aria-label="일시정지">❚❚</button>
+  <button id="btn-pause" aria-label="일시정지" tabindex="-1">❚❚</button>
 </div>
 
 <!-- 모바일 터치 -->
 <div id="touch" class="hidden">
   <div id="joy-zone"><div id="joy-base"><div id="joy-knob"></div></div></div>
   <div id="tbtns">
-    <button data-act="sprint" class="tb t-sprint">질주</button>
-    <button data-act="sw" class="tb t-sw">전환</button>
-    <button data-act="lo" class="tb t-lo">로빙</button>
-    <button data-act="pa" class="tb t-pa">패스</button>
-    <button data-act="sh" class="tb t-sh">슛</button>
+    <button data-act="sprint" class="tb t-sprint" tabindex="-1">질주</button>
+    <button data-act="mod" class="tb t-mod" tabindex="-1">Q</button>
+    <button data-act="through" class="tb t-th" tabindex="-1">스루</button>
+    <button data-act="lob" class="tb t-lo" tabindex="-1">로빙</button>
+    <button data-act="pass" class="tb t-pa" tabindex="-1">패스</button>
+    <button data-act="shoot" class="tb t-sh" tabindex="-1">슛</button>
   </div>
 </div>
 
@@ -156,6 +158,8 @@
     <p id="pause-note" class="status"></p>
     <div class="row-btns col">
       <button class="btn primary" id="btn-resume">계속하기</button>
+      <button class="btn" id="btn-pause-help">조작법</button>
+      <button class="btn" id="btn-pause-keys">⚙ 키 설정</button>
       <button class="btn" id="btn-quit">경기 나가기</button>
     </div>
   </div>

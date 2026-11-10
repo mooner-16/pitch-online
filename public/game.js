@@ -63,34 +63,109 @@
   };
 
   // =====================================================================
-  // 조작: 키보드 / 게임패드 / 터치
+  // 조작: 키 설정 / 키보드 / 게임패드 / 터치
   // =====================================================================
-  const inp = { mx: 0, my: 0, sp: false, pa: 0, lo: 0, sw: 0, sh: false };
-  const keys = Object.create(null);
-  const K = { pa: ['KeyJ', 'KeyZ'], sh: ['KeyK', 'KeyX'], lo: ['KeyL', 'KeyC'], sw: ['KeyQ', 'Space'] };
-  const BLOCK = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', ...K.pa, ...K.sh, ...K.lo, ...K.sw]);
+  const ACTIONS = [
+    { id: 'up', group: '이동', name: '위로', def: ['ArrowUp', null] },
+    { id: 'down', group: '이동', name: '아래로', def: ['ArrowDown', null] },
+    { id: 'left', group: '이동', name: '왼쪽', def: ['ArrowLeft', null] },
+    { id: 'right', group: '이동', name: '오른쪽', def: ['ArrowRight', null] },
+    { id: 'sprint', group: '이동', name: '질주', atk: '방향키와 함께 누르면 전력 질주', def: ['KeyE', null] },
+    { id: 'shield', group: '이동', name: '등지기 / 조키 수비', atk: '공 보호 · 방향키와 함께 = 느린 드리블', dfn: '거리 유지하며 길목 차단', def: ['KeyC', null] },
+    { id: 'knock', group: '이동', name: '치달 (볼 쳐놓기)', atk: '누른 채 방향키 = 공을 앞으로 쳐놓고 달리기', def: ['ShiftLeft', 'ShiftRight'] },
+    { id: 'pass', group: '공격·수비 버튼', name: '짧은 패스 / 선수 변경', atk: '땅볼 패스 · 헤딩 패스', dfn: '조종 선수 변경', def: ['KeyS', null] },
+    { id: 'shoot', group: '공격·수비 버튼', name: '슛 / 태클·압박', atk: '누르는 길이 = 파워 · 헤딩/발리', dfn: '누르고 있으면 압박 · 가까이서 태클 · 걷어내기', def: ['KeyD', null] },
+    { id: 'through', group: '공격·수비 버튼', name: '스루 패스 / 골키퍼 차출', atk: '땅볼 스루 패스', dfn: '골키퍼가 앞으로 나옴', def: ['KeyW', null] },
+    { id: 'lob', group: '공격·수비 버튼', name: '롱패스·크로스 / 슬라이딩', atk: '롱 패스 · 측면에서는 크로스', dfn: '슬라이딩 태클', def: ['KeyA', null] },
+    { id: 'tackle', group: '공격·수비 버튼', name: '스탠딩 태클', dfn: '바로 앞 상대의 공 뺏기', def: ['Space', null] },
+    { id: 'mod', group: '조합 보조키', name: '보조 Q', atk: '단독 = 공간 침투 요청', dfn: '누르고 있으면 협력 수비', def: ['KeyQ', null] },
+    { id: 'finesse', group: '조합 보조키', name: '보조 Z', atk: 'Z+D 감아차기 · Z+S 강한 땅볼 패스', def: ['KeyZ', null] },
+    { id: 'power', group: '조합 보조키', name: '파워 슛 보조', atk: '누른 채 슛 = 파워 슛', def: ['KeyF', null] },
+    { id: 'pause', group: '기타', name: '일시정지', def: ['Escape', null] }
+  ];
+  const ACT = Object.fromEntries(ACTIONS.map(a => [a.id, a]));
+  const KEY_NAMES = {
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', Escape: 'Esc', Enter: 'Enter', Tab: 'Tab',
+    ShiftLeft: '왼쪽 Shift', ShiftRight: '오른쪽 Shift', ControlLeft: '왼쪽 Ctrl', ControlRight: '오른쪽 Ctrl',
+    AltLeft: '왼쪽 Alt', AltRight: '오른쪽 Alt', CapsLock: 'Caps Lock', Backquote: '`', Minus: '-', Equal: '=',
+    BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\',
+    Lang1: '한/영', Lang2: '한자', Insert: 'Insert', Home: 'Home', End: 'End', PageUp: 'PgUp', PageDown: 'PgDn'
+  };
+  function keyLabel(c) {
+    if (!c) return '—';
+    if (KEY_NAMES[c]) return KEY_NAMES[c];
+    if (c.startsWith('Key')) return c.slice(3);
+    if (c.startsWith('Digit')) return c.slice(5);
+    if (c.startsWith('Numpad')) return '숫자패드 ' + c.slice(6);
+    return c;
+  }
 
+  let binds = {};
+  let codeMap = {};
+  function loadBinds() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('pitch-keys') || 'null'); } catch (e) {}
+    binds = {};
+    for (const a of ACTIONS) {
+      const s = saved && Array.isArray(saved[a.id]) ? saved[a.id] : null;
+      binds[a.id] = s ? [s[0] || null, s[1] || null] : a.def.slice();
+    }
+    rebuildCodeMap();
+  }
+  function saveBinds() { try { localStorage.setItem('pitch-keys', JSON.stringify(binds)); } catch (e) {} rebuildCodeMap(); }
+  function rebuildCodeMap() { codeMap = {}; for (const id in binds) for (const c of binds[id]) if (c) codeMap[c] = id; }
+  const K = id => { const k = binds[id].filter(Boolean).map(keyLabel); return k.length ? k.join(' / ') : '(없음)'; };
+  const K1 = id => keyLabel(binds[id].find(Boolean));
+  loadBinds();
+
+  const inp = S.emptyInput();
+  const down = new Set();
+  const touchHeld = {}, padHeld = {};
+  const held = id => binds[id].some(c => c && down.has(c)) || !!touchHeld[id] || !!padHeld[id];
+  const dirHeld = () => held('up') || held('down') || held('left') || held('right');
+
+  // 버튼을 눌렀을 때: 함께 누르고 있는 보조키에 따라 기술이 정해져요
+  function press(id) {
+    switch (id) {
+      case 'pass': if (held('mod')) inp.pq++; else if (held('finesse')) inp.pz++; else inp.pa++; break;
+      case 'through': if (held('mod')) inp.tq++; else inp.th++; break;
+      case 'lob': if (held('mod')) inp.lq++; else inp.lo++; break;
+      case 'shoot': inp.st = (held('power') || held('shield')) ? 3 : held('finesse') ? 1 : held('mod') ? 2 : 0; inp.sc++; break;
+      case 'mod': inp.rq++; break;
+      case 'tackle': inp.tk++; break;
+      case 'knock': if (dirHeld()) inp.kn++; break;
+      case 'up': case 'down': case 'left': case 'right': if (held('knock')) inp.kn++; break;
+      case 'pause': togglePause(); break;
+    }
+  }
+
+  let capture = null; // 키 설정에서 입력을 기다리는 칸
   addEventListener('keydown', e => {
-    if (!G.playing) return;
-    if (e.code === 'Escape') { togglePause(); return; }
-    if (BLOCK.has(e.code)) e.preventDefault();
-    if (e.repeat || G.paused) return;
-    keys[e.code] = true;
-    if (K.pa.includes(e.code)) inp.pa++;
-    if (K.lo.includes(e.code)) inp.lo++;
-    if (K.sw.includes(e.code)) inp.sw++;
-  });
-  addEventListener('keyup', e => { keys[e.code] = false; });
-  addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+    if (capture) { onCapture(e); return; }
+    if (!G.playing || !$('#menu').classList.contains('hidden')) return;
+    const id = codeMap[e.code];
+    if (!id) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat) return;
+    if (id === 'pause') { togglePause(); return; }
+    if (G.paused) return;
+    down.add(e.code);
+    press(id);
+  }, true);
+  addEventListener('keyup', e => {
+    down.delete(e.code);
+    if (G.playing && codeMap[e.code]) e.preventDefault();
+  }, true);
+  addEventListener('blur', () => down.clear());
 
-  const touch = { id: null, x: 0, y: 0, sprint: false, sh: false, cx: 0, cy: 0 };
   const isTouch = matchMedia('(pointer: coarse)').matches;
+  const touch = { id: null, x: 0, y: 0, cx: 0, cy: 0 };
   (function setupTouch() {
     const zone = $('#joy-zone'), base = $('#joy-base'), knob = $('#joy-knob');
     const R = 55;
     zone.addEventListener('pointerdown', e => {
       if (touch.id !== null) return;
-      touch.id = e.pointerId; zone.setPointerCapture(e.pointerId);
+      touch.id = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
       touch.cx = e.clientX; touch.cy = e.clientY;
       base.style.left = e.clientX + 'px'; base.style.top = e.clientY + 'px'; base.style.opacity = '1';
       touch.x = touch.y = 0; knob.style.transform = '';
@@ -108,49 +183,117 @@
     };
     zone.addEventListener('pointerup', end); zone.addEventListener('pointercancel', end);
     for (const b of $$('#tbtns .tb')) {
-      const act = b.dataset.act;
+      const id = b.dataset.act;
       b.addEventListener('pointerdown', e => {
         e.preventDefault(); b.classList.add('down'); Snd.init();
-        if (act === 'pa') inp.pa++; else if (act === 'lo') inp.lo++; else if (act === 'sw') inp.sw++;
-        else if (act === 'sh') touch.sh = true; else if (act === 'sprint') touch.sprint = true;
+        touchHeld[id] = true;
+        if (id !== 'sprint') press(id);
       });
-      const up = () => { b.classList.remove('down'); if (act === 'sh') touch.sh = false; if (act === 'sprint') touch.sprint = false; };
+      const up = () => { b.classList.remove('down'); touchHeld[id] = false; };
       b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
     }
     $('#touch').addEventListener('contextmenu', e => e.preventDefault());
   })();
 
+  // 게임패드 (표준 배열 패드만 사용 - 가상 장치가 일시정지를 누르는 문제 방지)
+  const PAD = { 0: 'pass', 1: 'shoot', 2: 'lob', 3: 'through', 4: 'mod', 5: 'finesse', 6: 'shield', 7: 'sprint', 10: 'knock', 11: 'tackle', 9: 'pause' };
   let padPrev = [];
   function pollPad() {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (const gp of pads) {
-      if (!gp || !gp.connected) continue;
-      const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
-      const edge = i => b(i) && !padPrev[i];
+      if (!gp || !gp.connected || gp.mapping !== 'standard') continue;
+      const b = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
       let ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
-      if (Math.hypot(ax, ay) < 0.2) ax = ay = 0;
+      if (Math.hypot(ax, ay) < 0.25) ax = ay = 0;
       if (b(14)) ax = -1; if (b(15)) ax = 1; if (b(12)) ay = -1; if (b(13)) ay = 1;
-      if (edge(0)) inp.pa++;
-      if (edge(3)) inp.lo++;
-      if (edge(4)) inp.sw++;
-      if (edge(9)) togglePause();
-      padPrev = gp.buttons.map(x => x.pressed);
-      return { ax, ay, sh: b(1), sp: b(5) || b(7) };
+      const now = gp.buttons.map((_, i) => b(i));
+      for (const i in PAD) {
+        padHeld[PAD[i]] = now[i];
+        if (now[i] && !padPrev[i] && padPrev.length) press(PAD[i]);
+      }
+      padPrev = now;
+      return { ax, ay };
     }
+    for (const k in padHeld) padHeld[k] = false;
     return null;
   }
 
   function updateInput() {
-    let mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-    let my = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
-    let sp = !!(keys.ShiftLeft || keys.ShiftRight), sh = !!(keys.KeyK || keys.KeyX);
+    let mx = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
+    let my = (held('down') ? 1 : 0) - (held('up') ? 1 : 0);
     if (touch.id !== null) { mx = touch.x; my = touch.y; }
-    sp = sp || touch.sprint; sh = sh || touch.sh;
     const gp = pollPad();
-    if (gp) { if (gp.ax || gp.ay) { mx = gp.ax; my = gp.ay; } sp = sp || gp.sp; sh = sh || gp.sh; }
+    if (gp && (gp.ax || gp.ay)) { mx = gp.ax; my = gp.ay; }
     const l = Math.hypot(mx, my); if (l > 1) { mx /= l; my /= l; }
-    if (G.paused) { mx = my = 0; sp = sh = false; }
-    inp.mx = mx; inp.my = my; inp.sp = sp; inp.sh = sh;
+    const off = G.paused;
+    inp.mx = off ? 0 : mx; inp.my = off ? 0 : my;
+    inp.sp = !off && held('sprint'); inp.sh = !off && held('shoot');
+    inp.sl = !off && held('shield'); inp.cq = !off && held('mod');
+  }
+
+  // ---- 키 설정 화면 ----
+  function renderKeys() {
+    const list = $('#keys-list'); list.innerHTML = '';
+    let group = '';
+    for (const a of ACTIONS) {
+      if (a.group !== group) { group = a.group; const g = document.createElement('div'); g.className = 'kgroup'; g.textContent = group; list.appendChild(g); }
+      const row = document.createElement('div');
+      row.className = 'krow' + (binds[a.id].some(Boolean) ? '' : ' missing');
+      const desc = [a.atk && '공격: ' + a.atk, a.dfn && '수비: ' + a.dfn].filter(Boolean).join(' · ');
+      row.innerHTML = `<div><div class="kname">${a.name}</div>${desc ? `<div class="kdesc">${desc}</div>` : ''}</div>`;
+      for (let slot = 0; slot < 2; slot++) {
+        const btn = document.createElement('button');
+        const c = binds[a.id][slot];
+        btn.className = 'kslot' + (c ? '' : ' empty');
+        btn.textContent = c ? keyLabel(c) : (slot ? '+ 추가' : '비어 있음');
+        btn.addEventListener('click', () => {
+          if (capture) capture.btn.classList.remove('wait');
+          capture = { id: a.id, slot, btn };
+          btn.classList.add('wait'); btn.textContent = '키를 누르세요';
+        });
+        row.appendChild(btn);
+      }
+      list.appendChild(row);
+    }
+  }
+  function onCapture(e) {
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat) return;
+    const { id, slot } = capture;
+    capture = null;
+    if (e.code === 'Escape') { renderKeys(); return; }
+    if (e.code === 'Backspace' || e.code === 'Delete') { binds[id][slot] = null; saveBinds(); renderKeys(); renderHelp(); return; }
+    let moved = null;
+    for (const other in binds) for (let s = 0; s < 2; s++) {
+      if (binds[other][s] === e.code && !(other === id && s === slot)) { binds[other][s] = null; if (other !== id) moved = ACT[other].name; }
+    }
+    binds[id][slot] = e.code;
+    saveBinds(); renderKeys(); renderHelp();
+    toast(moved ? `${keyLabel(e.code)} 키를 '${ACT[id].name}'에 넣고 '${moved}'에서는 뺐어요` : `'${ACT[id].name}' = ${keyLabel(e.code)}`);
+  }
+  function resetKeys() { for (const a of ACTIONS) binds[a.id] = a.def.slice(); saveBinds(); renderKeys(); renderHelp(); toast('기본 키로 되돌렸어요'); }
+
+  // ---- 조작법 화면 (현재 키로 자동 생성) ----
+  function renderHelp() {
+    const row = (name, keys, d) => `<tr><td>${name}${d ? `<span class="hdesc">${d}</span>` : ''}</td><td><kbd>${keys}</kbd></td></tr>`;
+    const arrows = [K1('up'), K1('down'), K1('left'), K1('right')].join(' ');
+    $('#help-basic').innerHTML = [
+      row('이동', arrows), row('질주', K('sprint')), row('짧은 패스 / 선수 변경', K('pass')),
+      row('슛 / 태클·압박', K('shoot'), '누르는 길이로 슛 파워 조절'), row('스루 패스 / 골키퍼 차출', K('through')),
+      row('롱패스·크로스 / 슬라이딩', K('lob')), row('스탠딩 태클', K('tackle')), row('등지기 / 조키 수비', K('shield')),
+      row('공간 침투 요청 / 협력 수비', K('mod'), '수비 때는 누르고 있기'), row('일시정지', K('pause'))
+    ].join('');
+    const q = K1('mod'), z = K1('finesse'), s = K1('pass'), d = K1('shoot'), w = K1('through'), a = K1('lob'), c = K1('shield'), f = K1('power'), e = K1('sprint'), sh = K1('knock');
+    $('#help-combo').innerHTML = [
+      row('2대1 패스', `${q} + ${s}`, `받은 선수가 ${s}(로빙은 ${a})를 누르면 침투하는 선수에게 리턴`),
+      row('로빙 스루 패스', `${q} + ${w}`), row('얼리 크로스', `${q} + ${a}`),
+      row('강한 땅볼 패스', `${z} + ${s}`), row('감아차기', `${z} + ${d}`, '방향키로 노릴 구석 선택'),
+      row('칩슛', `${q} + ${d}`), row('파워 슛', `${c} + ${d} 또는 ${f} + ${d}`),
+      row('로우 슛 (땅볼 슛)', `${d} 후 ${d}`, '슛을 찬 직후 한 번 더'),
+      row('느린 드리블', `${c} + 방향키`), row('치달 (볼 쳐놓기)', `${sh} + 방향키`),
+      row('빠른 조키 수비', `${c} + ${e}`), row('헤딩 / 발리', `공중볼에 ${d}`, `패스는 ${s}`)
+    ].join('');
+    $('#help-gk').innerHTML = [row('짧은 패스', s), row('공 던지기', w), row('롱킥', `${a} / ${d}`)].join('');
   }
 
   // =====================================================================
@@ -343,7 +486,8 @@
       g.add(ap); arms.push(ap);
     }
     const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; shadow.scale.set(1.3, 1.3, 1); g.add(shadow);
-    g.userData = { legs, arms, phase: Math.random() * 6 };
+    g.rotation.order = 'YXZ';
+    g.userData = { legs, arms, phase: Math.random() * 6, lean: 0 };
     return g;
   }
 
@@ -389,7 +533,8 @@
   function renderMatch(s, dt) {
     const k = G.mode === 'online' && view.init ? Math.min(1, dt * 18) : 1;
     for (let i = 0; i < N; i++) {
-      const tx = s.p[i * 4], ty = s.p[i * 4 + 1], tf = s.p[i * 4 + 2], sp = s.p[i * 4 + 3];
+      const o = i * S.STRIDE;
+      const tx = s.p[o], ty = s.p[o + 1], tf = s.p[o + 2], sp = s.p[o + 3], act = s.p[o + 4];
       view.x[i] += (tx - view.x[i]) * k; view.y[i] += (ty - view.y[i]) * k; view.f[i] = lerpAng(view.f[i], tf, k);
       if (k === 1) { view.x[i] = tx; view.y[i] = ty; view.f[i] = tf; }
       const p = players[i]; if (!p) continue;
@@ -397,7 +542,11 @@
       p.position.set(view.x[i], 0, view.y[i]);
       p.rotation.y = Math.PI / 2 - view.f[i];
       const ud = p.userData; ud.phase += sp * dt * 1.9;
-      const amp = Math.min(sp / 7, 1) * 0.8, sw = Math.sin(ud.phase) * amp;
+      // 동작: 1 슬라이딩(뒤로 눕기), 2 넘어짐(앞으로 휘청), 3 등지기·조키(살짝 숙임)
+      const lean = act === 1 ? -1.25 : act === 2 ? 0.6 : act === 3 ? 0.2 : 0;
+      ud.lean = (ud.lean || 0) + (lean - (ud.lean || 0)) * Math.min(1, dt * 14);
+      p.rotation.x = ud.lean;
+      const amp = act === 1 ? 0 : Math.min(sp / 7, 1) * (act === 3 ? 0.4 : 0.8), sw = Math.sin(ud.phase) * amp;
       ud.legs[0].rotation.x = sw; ud.legs[1].rotation.x = -sw;
       ud.arms[0].rotation.x = -sw * 0.8; ud.arms[1].rotation.x = sw * 0.8;
     }
@@ -507,9 +656,9 @@
     for (let i = 0; i < N; i++) {
       const side = i < S.PER_TEAM ? 0 : 1, k = G.kits[side];
       rctx.fillStyle = i % S.PER_TEAM === 0 ? k.gk : k.shirt;
-      rctx.beginPath(); rctx.arc(X(s.p[i * 4]), Y(s.p[i * 4 + 1]), 3.4, 0, Math.PI * 2); rctx.fill();
+      rctx.beginPath(); rctx.arc(X(s.p[i * S.STRIDE]), Y(s.p[i * S.STRIDE + 1]), 3.4, 0, Math.PI * 2); rctx.fill();
       rctx.strokeStyle = 'rgba(0,0,0,.6)'; rctx.stroke();
-      if (i === mine) { rctx.strokeStyle = '#ffd54f'; rctx.lineWidth = 2; rctx.beginPath(); rctx.arc(X(s.p[i * 4]), Y(s.p[i * 4 + 1]), 6, 0, Math.PI * 2); rctx.stroke(); rctx.lineWidth = 1; }
+      if (i === mine) { rctx.strokeStyle = '#ffd54f'; rctx.lineWidth = 2; rctx.beginPath(); rctx.arc(X(s.p[i * S.STRIDE]), Y(s.p[i * S.STRIDE + 1]), 6, 0, Math.PI * 2); rctx.stroke(); rctx.lineWidth = 1; }
     }
     rctx.fillStyle = '#fff'; rctx.beginPath(); rctx.arc(X(s.b[0]), Y(s.b[1]), 2.6, 0, Math.PI * 2); rctx.fill();
     rctx.strokeStyle = '#000'; rctx.stroke();
@@ -535,7 +684,18 @@
     for (const s of $$('.screen')) s.classList.toggle('active', s.id === id);
     $('#menu').classList.remove('hidden');
   }
-  for (const b of $$('[data-go]')) b.addEventListener('click', () => { Snd.init(); showScreen(b.dataset.go); });
+  function blurAll() { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+  for (const b of $$('[data-go]')) b.addEventListener('click', () => {
+    Snd.init();
+    if (capture) { capture = null; }
+    const to = b.dataset.go;
+    if (to === 'scr-keys') renderKeys();
+    if (to === 'scr-help') renderHelp();
+    if (G.playing && to === 'scr-main') { $('#menu').classList.add('hidden'); $('#pause').classList.remove('hidden'); blurAll(); return; }
+    showScreen(to);
+  });
+  $('#btn-keys-reset').addEventListener('click', resetKeys);
+  renderKeys(); renderHelp();
 
   function makePicker(el, key, init) {
     let idx = store.get(key, init);
@@ -579,7 +739,7 @@
     $('#end').classList.add('hidden'); $('#pause').classList.add('hidden');
     $('#touch').classList.toggle('hidden', !isTouch);
     Snd.init(); Snd.crowd(0.1, 1.5);
-    canvas.focus && canvas.focus();
+    down.clear(); blurAll();
   }
   function startAI() {
     const o = G.aiOpts;
@@ -594,7 +754,7 @@
   });
 
   function goMenu(screen) {
-    G.playing = false; G.paused = false; G.mode = null; G.match = null; G.snap = null;
+    G.playing = false; G.paused = false; G.mode = null; G.match = null; G.snap = null; down.clear();
     $('#hud').classList.add('hidden'); $('#touch').classList.add('hidden');
     $('#pause').classList.add('hidden'); $('#end').classList.add('hidden');
     bigmsg.classList.remove('show');
@@ -628,15 +788,20 @@
 
   // ---- 일시정지 ----
   function togglePause() {
-    if (!G.playing || !$('#end').classList.contains('hidden')) return;
+    if (!G.playing || !$('#end').classList.contains('hidden') || !$('#menu').classList.contains('hidden')) return;
     const el = $('#pause');
     const show = el.classList.contains('hidden');
     el.classList.toggle('hidden', !show);
     if (G.mode === 'ai') G.paused = show;
     $('#pause-title').textContent = G.mode === 'ai' ? '일시정지' : '메뉴';
     $('#pause-note').textContent = G.mode === 'online' ? '온라인 경기는 멈추지 않아요!' : '';
+    down.clear(); blurAll();
   }
+  $('#btn-pause').addEventListener('mousedown', e => e.preventDefault());
   $('#btn-pause').addEventListener('click', togglePause);
+  const openFromPause = id => { $('#pause').classList.add('hidden'); if (id === 'scr-keys') renderKeys(); else renderHelp(); showScreen(id); };
+  $('#btn-pause-help').addEventListener('click', () => openFromPause('scr-help'));
+  $('#btn-pause-keys').addEventListener('click', () => openFromPause('scr-keys'));
   $('#btn-resume').addEventListener('click', togglePause);
   $('#btn-quit').addEventListener('click', () => goMenu(G.mode === 'online' ? 'scr-online' : 'scr-main'));
 
@@ -723,8 +888,7 @@
 
   setInterval(() => {
     if (G.mode !== 'online' || !G.playing) return;
-    const r = v => Math.round(v * 100) / 100;
-    send({ t: 'i', i: [r(inp.mx), r(inp.my), inp.sp ? 1 : 0, inp.pa, inp.lo, inp.sw, inp.sh ? 1 : 0] });
+    send({ t: 'i', i: S.packInput(inp) });
   }, 33);
 
   // 초대 링크로 들어온 경우
