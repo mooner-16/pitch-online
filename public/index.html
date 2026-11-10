@@ -1,1 +1,192 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>PITCH ONLINE · 피치 온라인</title>
+<meta name="description" content="3D 중계 시점 7대7 축구 게임. AI와 대결하거나 친구와 실시간 1:1 온라인 대전!">
+<meta property="og:title" content="PITCH ONLINE · 피치 온라인">
+<meta property="og:description" content="3D 중계 시점 축구 게임. 친구에게 방 코드를 보내고 바로 한 판!">
+<meta name="theme-color" content="#0a1220">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
 
+<!-- ===== 메뉴 ===== -->
+<div id="menu" class="overlay">
+  <section id="scr-main" class="screen active">
+    <div class="logo">
+      <div class="logo-mark">PITCH<span>ONLINE</span></div>
+      <div class="logo-sub">피치 온라인 · 7 vs 7 풋볼</div>
+    </div>
+    <div class="menu-buttons">
+      <button class="btn big primary" data-go="scr-ai"><b>AI 대전</b><small>컴퓨터와 한 판</small></button>
+      <button class="btn big accent" data-go="scr-online"><b>온라인 대전</b><small>친구와 실시간 1:1</small></button>
+      <button class="btn" data-go="scr-help">조작법</button>
+    </div>
+  </section>
+
+  <section id="scr-ai" class="screen">
+    <h2>AI 대전</h2>
+    <div class="pick-row">
+      <div><div class="pick-label">내 팀</div><div class="picker" id="pick-ai-my"></div></div>
+      <div class="vs">VS</div>
+      <div><div class="pick-label">상대 팀</div><div class="picker" id="pick-ai-cpu"></div></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">난이도</span>
+      <div class="seg" id="seg-diff">
+        <button data-v="easy">아마추어</button><button data-v="normal" class="on">프로</button><button data-v="hard">월드클래스</button>
+      </div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">경기 시간</span>
+      <div class="seg" id="seg-dur-ai">
+        <button data-v="180">3분</button><button data-v="300" class="on">5분</button><button data-v="480">8분</button>
+      </div>
+    </div>
+    <div class="row-btns">
+      <button class="btn" data-go="scr-main">뒤로</button>
+      <button class="btn primary" id="btn-start-ai">킥오프</button>
+    </div>
+  </section>
+
+  <section id="scr-online" class="screen">
+    <h2>온라인 대전</h2>
+    <div class="pick-row single">
+      <div><div class="pick-label">내 팀</div><div class="picker" id="pick-on"></div></div>
+    </div>
+    <div class="online-grid">
+      <div class="card">
+        <h3>방 만들기</h3>
+        <div class="seg small" id="seg-dur-on">
+          <button data-v="180">3분</button><button data-v="300" class="on">5분</button><button data-v="480">8분</button>
+        </div>
+        <button class="btn primary" id="btn-create">방 만들기</button>
+        <div id="room-box" class="hidden">
+          <div class="room-code-label">방 코드</div>
+          <div class="room-code" id="room-code">----</div>
+          <button class="btn small" id="btn-copy">초대 링크 복사</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>참가하기</h3>
+        <input id="join-code" maxlength="4" placeholder="코드 4자리" autocomplete="off" spellcheck="false">
+        <button class="btn accent" id="btn-join">참가</button>
+      </div>
+    </div>
+    <p class="status" id="online-status"></p>
+    <div class="row-btns">
+      <button class="btn" id="btn-online-back">뒤로</button>
+    </div>
+  </section>
+
+  <section id="scr-help" class="screen">
+    <h2>조작법</h2>
+    <div class="help-grid">
+      <div class="card">
+        <h3>⌨️ 키보드</h3>
+        <table>
+          <tr><td>이동</td><td><kbd>W A S D</kbd> 또는 <kbd>방향키</kbd></td></tr>
+          <tr><td>질주</td><td><kbd>Shift</kbd></td></tr>
+          <tr><td>짧은 패스</td><td><kbd>J</kbd> 또는 <kbd>Z</kbd></td></tr>
+          <tr><td>슛 (누르고 있으면 파워)</td><td><kbd>K</kbd> 또는 <kbd>X</kbd></td></tr>
+          <tr><td>로빙 스루패스</td><td><kbd>L</kbd> 또는 <kbd>C</kbd></td></tr>
+          <tr><td>선수 전환</td><td><kbd>Q</kbd> 또는 <kbd>Space</kbd></td></tr>
+          <tr><td>수비: 태클</td><td><kbd>J</kbd> 또는 <kbd>K</kbd></td></tr>
+          <tr><td>일시정지</td><td><kbd>Esc</kbd></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>🎮 게임패드</h3>
+        <table>
+          <tr><td>이동</td><td>왼쪽 스틱</td></tr>
+          <tr><td>패스 / 태클</td><td>A (✕)</td></tr>
+          <tr><td>슛</td><td>B (○)</td></tr>
+          <tr><td>로빙 스루패스</td><td>Y (△)</td></tr>
+          <tr><td>선수 전환</td><td>LB (L1)</td></tr>
+          <tr><td>질주</td><td>RB / RT (R1 / R2)</td></tr>
+        </table>
+        <h3>📱 모바일</h3>
+        <p>왼쪽 화면을 드래그해서 이동, 오른쪽 버튼으로 패스·슛·전환을 해요.</p>
+      </div>
+    </div>
+    <p class="tip">팁: 슛 버튼을 오래 누를수록 강해지지만 너무 세게 차면 골대를 넘어가요. 슛할 때 위/아래 방향키로 골문 구석을 노릴 수 있어요.</p>
+    <div class="row-btns"><button class="btn" data-go="scr-main">뒤로</button></div>
+  </section>
+</div>
+
+<!-- ===== 경기 화면 HUD ===== -->
+<div id="hud" class="hidden">
+  <div id="scoreboard">
+    <div class="sb-team"><i id="sb-c0"></i><span id="sb-n0">AAA</span></div>
+    <div class="sb-score"><span id="sb-s0">0</span><em>-</em><span id="sb-s1">0</span></div>
+    <div class="sb-team"><span id="sb-n1">BBB</span><i id="sb-c1"></i></div>
+    <div class="sb-time" id="sb-time">00:00</div>
+  </div>
+  <div id="ping" class="hidden"></div>
+  <div id="bigmsg"><div class="bm-text"></div><div class="bm-sub"></div></div>
+  <div id="ctrl-info"><span id="ctrl-num">9</span><span id="ctrl-name">선수</span></div>
+  <div id="power"><div class="pw-label">슛 파워</div><div class="pw-bar"><i></i></div></div>
+  <canvas id="radar" width="220" height="142"></canvas>
+  <button id="btn-pause" aria-label="일시정지">❚❚</button>
+</div>
+
+<!-- 모바일 터치 -->
+<div id="touch" class="hidden">
+  <div id="joy-zone"><div id="joy-base"><div id="joy-knob"></div></div></div>
+  <div id="tbtns">
+    <button data-act="sprint" class="tb t-sprint">질주</button>
+    <button data-act="sw" class="tb t-sw">전환</button>
+    <button data-act="lo" class="tb t-lo">로빙</button>
+    <button data-act="pa" class="tb t-pa">패스</button>
+    <button data-act="sh" class="tb t-sh">슛</button>
+  </div>
+</div>
+
+<!-- 일시정지 -->
+<div id="pause" class="overlay dim hidden">
+  <div class="panel">
+    <h2 id="pause-title">일시정지</h2>
+    <p id="pause-note" class="status"></p>
+    <div class="row-btns col">
+      <button class="btn primary" id="btn-resume">계속하기</button>
+      <button class="btn" id="btn-quit">경기 나가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 경기 종료 -->
+<div id="end" class="overlay dim hidden">
+  <div class="panel">
+    <div class="end-title">FULL TIME</div>
+    <div class="end-score">
+      <div><i id="end-c0"></i><span id="end-n0"></span></div>
+      <b id="end-s">0 : 0</b>
+      <div><span id="end-n1"></span><i id="end-c1"></i></div>
+    </div>
+    <div class="end-result" id="end-result"></div>
+    <table class="end-stats">
+      <tr><td id="es-p0">50%</td><th>점유율</th><td id="es-p1">50%</td></tr>
+      <tr><td id="es-s0">0</td><th>슈팅</th><td id="es-s1">0</td></tr>
+    </table>
+    <p class="status" id="end-status"></p>
+    <div class="row-btns">
+      <button class="btn" id="btn-end-menu">메인으로</button>
+      <button class="btn primary" id="btn-rematch">다시 하기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="sim.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
