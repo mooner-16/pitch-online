@@ -383,7 +383,7 @@
       grp.position.set(x, 0, z); grp.rotation.y = rot; scene.add(grp);
     }
     stand(140, 0, -S.HW - 9, 0);
-    stand(140, 0, S.HW + 9, Math.PI);
+    // 카메라 쪽(가까운 쪽) 관중석은 만들지 않아요 - 중계 카메라를 가리기 때문
     stand(92, S.HL + 11, 0, -Math.PI / 2);
     stand(92, -S.HL - 11, 0, Math.PI / 2);
 
@@ -585,9 +585,10 @@
     const aspect = innerWidth / innerHeight;
     const far = aspect < 0.8 ? 1.75 : aspect < 1.3 ? 1.3 : 1;
     cam.x += (clamp(bx * 0.88, -34, 34) - cam.x) * Math.min(1, dt * 2.2);
-    cam.z += (clamp(by * 0.3, -8, 8) - cam.z) * Math.min(1, dt * 1.5);
-    camera.position.set(cam.x, 26 * far, 50 * far + cam.z);
-    camera.lookAt(cam.x, 0, cam.z - 4);
+    // 공이 아래쪽(카메라 쪽) 터치라인에 가도 화면 안에 들어오도록 시선을 공 쪽으로 더 따라가요
+    cam.z += (clamp(by * 0.55, -19, 19) - cam.z) * Math.min(1, dt * 1.8);
+    camera.position.set(cam.x, 26 * far, 50 * far + cam.z * 0.6);
+    camera.lookAt(cam.x, 0, cam.z);
   }
 
   let menuT = 0;
