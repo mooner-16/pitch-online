@@ -131,13 +131,7 @@ function newCode() {
 }
 const teamIdx = v => { const n = parseInt(v, 10); return n >= 0 && n < Sim.TEAMS.length ? n : 0; };
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-function parseInput(a) {
-  if (!Array.isArray(a)) return null;
-  return {
-    mx: clamp(+a[0] || 0, -1, 1), my: clamp(+a[1] || 0, -1, 1), sp: !!a[2],
-    pa: a[3] | 0, lo: a[4] | 0, sw: a[5] | 0, sh: !!a[6]
-  };
-}
+const parseInput = a => Sim.unpackInput(a);
 
 function handle(c, m) {
   const r = c.room;
